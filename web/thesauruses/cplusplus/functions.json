@@ -1,0 +1,74 @@
+{
+  "meta": {
+    "language": "language_id",
+    "language_version": "version.number",
+    "language_name": "Human-Friendly Language Name"
+  },
+  "categories": {
+    "Void Functions": [
+      "void_function_no_parameters",
+      "void_function_with_parameters",
+      "void_function_variable_parameters"
+    ],
+    "Return Value Functions": [
+      "return_value_function_no_parameters",
+      "return_value_function_with_parameters",
+      "return_value_function_variable_parameters"
+    ],
+    "Lambda/Anonymous Functions": [
+      "anonymous_function_no_parameters",
+      "anonymous_function_with_parameters",
+      "anonymous_function_variable_parameters"
+    ],
+    "Subroutines": [
+      "call_subroutine",
+      "return_from_subroutine"
+    ]
+  },
+  "functions": {
+    "void_function_no_parameters": {
+      "name": "Function that does not return a value and takes no parameters",
+      "code": " void foo() { // function body - empty return statement is optional } "
+    },
+    "void_function_with_parameters": {
+      "name": "Function that does not return a value and that takes 1 or more defined parameters",
+      "code": " void foo(char c, int i, double d) { // function body - empty return statement is optional } "
+    },
+    "void_function_variable_parameters": {
+      "name": "Function that does not return a value and function that takes an unknown number of parameters",
+      "code": "template <typename ... Ts> void foo(Ts ... args){ // function body - return is dependent on function type }"
+    },
+    "return_value_function_no_parameters": {
+      "name": "Function that returns a value and takes no parameters",
+      "code": "int foo() { return 1; }"
+    },
+    "return_value_function_with_parameters": {
+      "name": "Function that returns a value and takes 1 or more defined parameters",
+      "code": "int foo(int x, int y){ return x + y; }"
+    },
+    "return_value_function_variable_parameters": {
+      "name": "Function that returns a value and takes an unknown number of parameters",
+      "code": "template <typename ... Ts> auto foo(Ts ... args){ return std::make_tuple(std::forward<Ts>(args)...); }"
+    },
+    "anonymous_function_no_parameters": {
+      "name": "Anonymous function that takes no parameters",
+      "code": "[]{ // function body - return type deduced from optional return statement }; "
+    },
+    "anonymous_function_with_parameters": {
+      "name": "Anonymous function that takes 1 or more defined parameters",
+      "code": "[](char c, int i){ // function body - return type deduced from optional return statement };"
+    },
+    "anonymous_function_variable_parameters": {
+      "name": "Anonymous function that takes an unknown number of parameters",
+      "code": "[](auto ... args){ // function body - return type deduced from optional return statement };"
+    },
+    "call_subroutine": {
+      "name": "Call subroutine",
+      "code": "foo(); // calls function foo - foo must be defined first"
+    },
+    "return_from_subroutine": {
+      "name": "Return from subroutine",
+      "code": "return"
+    }
+  }
+}
