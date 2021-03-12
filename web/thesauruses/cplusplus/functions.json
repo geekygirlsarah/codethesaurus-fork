@@ -28,11 +28,11 @@
   "functions": {
     "void_function_no_parameters": {
       "name": "Function that does not return a value and takes no parameters",
-      "code": " void foo() { // function body - empty return statement is optional } "
+      "code": "void foo() { // function body - empty return statement is optional }"
     },
     "void_function_with_parameters": {
       "name": "Function that does not return a value and that takes 1 or more defined parameters",
-      "code": " void foo(char c, int i, double d) { // function body - empty return statement is optional } "
+      "code": "void foo(char c, int i, double d) { // function body - empty return statement is optional }"
     },
     "void_function_variable_parameters": {
       "name": "Function that does not return a value and function that takes an unknown number of parameters",
@@ -56,11 +56,11 @@
     },
     "anonymous_function_with_parameters": {
       "name": "Anonymous function that takes 1 or more defined parameters",
-      "code": "[](char c, int i){ // function body - return type deduced from optional return statement };"
+      "code": "[](char c, int i){ // function body - return type deduced from optional return statement }"
     },
     "anonymous_function_variable_parameters": {
       "name": "Anonymous function that takes an unknown number of parameters",
-      "code": "[](auto ... args){ // function body - return type deduced from optional return statement };"
+      "code": "[](auto ... args){ // function body - return type deduced from optional return statement }"
     },
     "call_subroutine": {
       "name": "Call subroutine",
