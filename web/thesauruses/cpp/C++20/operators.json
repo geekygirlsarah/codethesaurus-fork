@@ -7,27 +7,27 @@
   },
   "concepts": {
     "addition": {
-      "code": "+",
+      "code": "operand1 + operand2",
       "name": "Addition operator"
     },
     "addition_assignment": {
-      "code": "+=",
+      "code": "result += operand1",
       "name": "Addition and assignment operator"
     },
     "subtraction": {
-      "code": "-",
+      "code": "operand1 - operand2",
       "name": "Subtraction operator"
     },
     "subtraction_assignment": {
-      "code": "-=",
+      "code": "result -= operand1",
       "name": "Subtraction and assignment operator"
     },
     "multiplication": {
-      "code": "*",
+      "code": "operand1 * operand2",
       "name": "Multiplication operator"
     },
     "multiplication_assignment": {
-      "code": "*=",
+      "code": "result *= operand1",
       "name": "Multiplication and assignment operator"
     },
     "division": {
