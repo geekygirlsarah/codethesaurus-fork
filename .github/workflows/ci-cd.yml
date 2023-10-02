@@ -1,0 +1,119 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  checkout:
+    name: Checkout code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the branch
+        uses: actions/checkout@v3
+
+  setup:
+    name: Setup environment
+    needs: checkout
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version-file: 'runtime.txt'
+          cache: 'pip'
+          cache-dependency-path: 'requirements.txt'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+  unit-tests:
+    name: Run unit tests
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run unit tests
+        run: python manage.py test
+
+  test-meta-info-file:
+    name: Test neta info file
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run validate meta info file command
+        run: python manage.py validatemetainfofile
+
+  test-lang-info-files:
+    name: Test langauge info files
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run validate language info files command
+        run: python manage.py validatelanginfofiles
+
+  test-json-syntax:
+    name: Check JSON Files
+    needs: checkout
+    runs-on: ubuntu-latest
+    steps:
+      - name: JSON Syntax Check
+        uses: limitusus/json-syntax-check@v1
+        with:
+          pattern: "\\.json$"
+
+  test-docker-build:
+    name: Test Docker build
+    needs: checkout
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build container
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          tags: ct:latest
+
+  run-codeql-analysis:
+    name: Run CodeQL Analysis
+    needs: setup
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'python', 'javascript' ]
+    steps:
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+         languages: ${{ matrix.language }}
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+        with:
+          category: "/language:${{matrix.language}}"
+
+  lighthouse-checker:
+    name: Run CodeQL Analysis
+    needs: setup
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+    - name: Start Django server
+      run: python manage.py runserver
+
+    - name: Lighthouse
+      uses: foo-software/lighthouse-check-action@master
+      with:
+        urls: 'http://localhost:8000'
