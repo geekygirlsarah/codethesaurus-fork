@@ -9,18 +9,19 @@ on:
       - main
 
 jobs:
-  checkout:
-    name: Checkout code
+#  checkout:
+#    name: Checkout code
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: Checkout the branch
+#        uses: actions/checkout@v3
+
+  setup:
+    name: Setup environment
     runs-on: ubuntu-latest
     steps:
       - name: Checkout the branch
         uses: actions/checkout@v3
-
-  setup:
-    name: Setup environment
-    needs: checkout
-    runs-on: ubuntu-latest
-    steps:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
@@ -59,9 +60,10 @@ jobs:
 
   test-json-syntax:
     name: Check JSON Files
-    needs: checkout
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout the branch
+        uses: actions/checkout@v3
       - name: JSON Syntax Check
         uses: limitusus/json-syntax-check@v1
         with:
@@ -69,10 +71,11 @@ jobs:
 
   test-docker-build:
     name: Test Docker build
-    needs: checkout
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
+      - name: Checkout the branch
+        uses: actions/checkout@v3
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
