@@ -9,13 +9,6 @@ on:
       - main
 
 jobs:
-#  checkout:
-#    name: Checkout code
-#    runs-on: ubuntu-latest
-#    steps:
-#      - name: Checkout the branch
-#        uses: actions/checkout@v3
-
   setup:
     name: Setup environment
     runs-on: ubuntu-latest
@@ -25,6 +18,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
+          python-version: 3.11.4
           python-version-file: 'runtime.txt'
           cache: 'pip'
           cache-dependency-path: 'requirements.txt'
