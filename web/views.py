@@ -188,35 +188,34 @@ def concepts(request):
         meta_structure.key
     )
 
+    lexers = [get_highlighter(lang.key) for lang in languages]
     all_categories = []
 
     for (category_key, category) in meta_structure.categories.items():
-        concepts_list = [concepts_data(key, name, languages) for (key, name) in category.items()]
+        concept_keys = list(category.keys())
+        concepts_list = [concepts_data(key, name, languages, lexers) for (key, name) in category.items()]
 
         category_entry = {
             "key": category_key,
             "concepts": concepts_list,
-            "is_incomplete": [False] * len(languages)
+            "is_incomplete": []
         }
-        for i in range(len(languages)):
-            is_incomplete = True
-            for concept in concepts_list:
-                if not languages[i].concept_unknown(concept["key"]) and \
-                    languages[i].concept_implemented(concept["key"]):
-                    is_incomplete = False
-                if languages[i].concept_unknown(concept["key"]) or \
-                    (languages[i].concept_implemented(concept["key"]) and \
-                    not languages[i].concept_code(concept["key"]) and \
-                    not languages[i].concept_comment(concept["key"]) ):
-                    category_entry["is_incomplete"][i] = True
-                    break
-            if is_incomplete:
-                category_entry["is_incomplete"][i] = True
+
+        for lang in languages:
+            is_incomplete = False
+            # If nothing in this category is implemented for this language
+            if not lang.has_any_implemented_in_category(concept_keys):
+                is_incomplete = True
+            # OR if at least one concept is missing code/comment
+            elif lang.is_category_incomplete(concept_keys):
+                is_incomplete = True
+            
+            category_entry["is_incomplete"].append(is_incomplete)
+            
         all_categories.append(category_entry)
 
-    for lang in languages:
-        booleans = [category["is_incomplete"][languages.index(lang)] for category in all_categories]
-        lang._is_incomplete = any(booleans)
+    for i, lang in enumerate(languages):
+        lang._is_incomplete = any(cat["is_incomplete"][i] for cat in all_categories)
 
     return render_concepts(request, languages, meta_structure, all_categories)
 
@@ -321,20 +320,22 @@ def get_highlighter(language):
     return lexer
 
 # Helper functions
-def format_code_for_display(concept_key, lang):
+def format_code_for_display(concept_key, lang, lexer=None):
     """
     Returns the formatted HTML formatted syntax-highlighted text for a concept key (from a meta
             language file) and a language
 
     :param concept_key: name of the key to format
     :param lang: language to format it (in meta language/syntax highlighter format)
+    :param lexer: optional pre-fetched lexer
     :return: string with code with applied HTML formatting
     """
 
     if lang.concept_unknown(concept_key) or lang.concept_code(concept_key) is None:
         return "Unknown"
     if lang.concept_implemented(concept_key):
-        lexer = get_highlighter(lang.key)
+        if lexer is None:
+            lexer = get_highlighter(lang.key)
         return highlight(
             lang.concept_code(concept_key),
             lexer,
@@ -357,22 +358,28 @@ def format_comment_for_display(concept_key, lang):
     return lang.concept_comment(concept_key)
 
 
-def concepts_data(key, name, languages):
+def concepts_data(key, name, languages, lexers=None):
     """
     Generates the comparision object of a single concept
 
     :param key: key of the concept
     :param name: name of the concept
     :param languages: list of languages to compare / get a reference for
+    :param lexers: optional list of pre-fetched lexers corresponding to languages
     :return: string with code with applied HTML formatting
     """
+    data = []
+    for i, lang in enumerate(languages):
+        lexer = lexers[i] if lexers else None
+        data.append({
+            "code": format_code_for_display(key, lang, lexer),
+            "comment": format_comment_for_display(key, lang)
+        })
+
     return {
         "key": key,
         "name": name,
-        "data": [{
-            "code": format_code_for_display(key, lang),
-            "comment": format_comment_for_display(key, lang)
-        } for lang in languages ],
+        "data": data,
     }
 
 
