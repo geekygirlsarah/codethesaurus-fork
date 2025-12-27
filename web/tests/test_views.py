@@ -269,4 +269,36 @@ class TestViews(TestCase):
         self.assertIn('meta', response_data)
         self.assertIn('concepts', response_data)
 
+    def test_api_compare_valid(self):
+        """Test api_compare with valid languages and versions"""
+        url = reverse('api.compare', kwargs={
+            'structure_key': 'data_types',
+            'lang1': 'python',
+            'version1': '3',
+            'lang2': 'javascript',
+            'version2': 'ECMAScript 2009'
+        })
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        response_data = response.json()
+        self.assertIn('meta', response_data)
+        self.assertIn('concepts1', response_data)
+        self.assertIn('concepts2', response_data)
+        self.assertEqual(response_data['meta']['language_1'], 'python')
+        self.assertEqual(response_data['meta']['language_2'], 'javascript')
+
+    def test_concepts_view_valid_params(self):
+        """Test concepts view with valid parameters that should return 200"""
+        url = reverse('index') + '?concept=data_types&lang=python%3B3&lang=javascript%3BECMAScript%202023'
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertTemplateUsed(response, 'concepts.html')
+
+    def test_concepts_view_legacy_params(self):
+        """Test concepts view with legacy lang1/lang2 parameters"""
+        url = reverse('compare') + '?concept=data_types&lang1=python%3B3&lang2=javascript%3BECMAScript%202023'
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertTemplateUsed(response, 'concepts.html')
+
 
