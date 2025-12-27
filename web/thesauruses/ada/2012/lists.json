@@ -234,9 +234,9 @@
     "find_element_at_position": {
       "code": "V(index)"
     },
-    "find_element_by_value": {
-      "code": "V.Find_Index (value) \n V.Find (value)",
-      "name": "Find/search for an element by value"
+    "get_index_of_element": {
+      "code": "V.Find_Index (value)",
+      "name": "Get the index of an element by value"
     },
     "find_minimum_element": {
       "not-implemented": "true",
@@ -245,6 +245,10 @@
     "find_maximum_element": {
       "not-implemented": "true",
       "name": "Find the maximum value in a list"
+    },
+    "contains_element": {
+      "code": "V.Contains (value)",
+      "name": "Check if the list contains a specific element"
     },
     "convert_list_to_string": {
       "not-implemented": "true",

@@ -236,9 +236,9 @@
     "find_element_at_position": {
       "code": "someArray[2]"
     },
-    "find_element_by_value": {
-      "code": "someArray.firstIndex(of: \"blue\")",
-      "name": "Find/search for an element by value"
+    "get_index_of_element": {
+      "code": "myArray.firstIndex(of: value)",
+      "name": "Get the index of an element by value"
     },
     "find_minimum_element": {
       "code": "someArray.min()",
@@ -247,6 +247,10 @@
     "find_maximum_element": {
       "code": "someArray.max()",
       "name": "Find the maximum value in a list"
+    },
+    "contains_element": {
+      "code": "myArray.contains(value)",
+      "name": "Check if the list contains a specific element"
     },
     "convert_list_to_string": {
       "code": "let codes = [\"abc\",\"def\",\"ghi\"] \nlet codesAsText = codes.reduce(\"\", +)",
