@@ -432,18 +432,27 @@ def api_reference(request, structure_key, lang, version):
     :param version: version
     :return: HttpResponse filled template of concept
     """
-    store_url_info(request)
+    visit = store_url_info(request)
 
-    lang = Language(lang, "")
+    lang_obj = Language(lang, "")
 
     try:
-        response = lang.load_filled_concepts(structure_key, version)
+        response = lang_obj.load_filled_concepts(structure_key, version)
     except Exception as e:
         return error_handler_404_not_found(request, e)
 
     if response is False:
         return HttpResponseNotFound()
 
+    store_lookup_info(
+        request,
+        visit,
+        lang,
+        version,
+        "",
+        "",
+        structure_key
+    )
 
     return HttpResponse(response, content_type="application/json")
 
@@ -459,11 +468,21 @@ def api_compare(request, structure_key, lang1, version1, lang2, version2):
     :param version2: version 2
     :return: HttpResponse response
     """
-    store_url_info(request)
+    visit = store_url_info(request)
 
     response = Language(lang1, "").load_comparison(structure_key, lang2, version2, version1)
 
     if response is False:
         return HttpResponseNotFound()
+
+    store_lookup_info(
+        request,
+        visit,
+        lang1,
+        version1,
+        lang2,
+        version2,
+        structure_key
+    )
 
     return HttpResponse(response, content_type="application/json")

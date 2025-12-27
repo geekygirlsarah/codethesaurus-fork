@@ -3,6 +3,7 @@ from http import HTTPStatus
 
 from django.test import TestCase
 from django.urls import reverse
+from web.models import LookupData
 
 
 class TestViews(TestCase):
@@ -300,5 +301,59 @@ class TestViews(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, HTTPStatus.OK)
         self.assertTemplateUsed(response, 'concepts.html')
+
+    def test_concepts_view_logging(self):
+        """test if the concepts view correctly logs to the database"""
+        # test single language
+        url = reverse('index') + '?concept=data_types&lang=python%3B3'
+        self.client.get(url)
+        lookup = LookupData.objects.last()
+        self.assertEqual(lookup.language1, 'python')
+        self.assertEqual(lookup.version1, '3')
+        self.assertEqual(lookup.language2, '')
+        self.assertEqual(lookup.version2, '')
+        self.assertEqual(lookup.structure, 'data_types')
+
+        # test two languages
+        url = reverse('index') + '?concept=data_types&lang=python%3B3&lang=javascript%3BECMAScript%202023'
+        self.client.get(url)
+        lookup = LookupData.objects.last()
+        self.assertEqual(lookup.language1, 'python')
+        self.assertEqual(lookup.version1, '3')
+        self.assertEqual(lookup.language2, 'javascript')
+        self.assertEqual(lookup.version2, 'ECMAScript 2023')
+        self.assertEqual(lookup.structure, 'data_types')
+
+    def test_api_logging(self):
+        """test if the API calls correctly log to the database"""
+        # test api_reference
+        url = reverse('api.reference', kwargs={
+            'structure_key': 'data_types',
+            'lang': 'python',
+            'version': '3'
+        })
+        self.client.get(url)
+        lookup = LookupData.objects.last()
+        self.assertEqual(lookup.language1, 'python')
+        self.assertEqual(lookup.version1, '3')
+        self.assertEqual(lookup.language2, '')
+        self.assertEqual(lookup.version2, '')
+        self.assertEqual(lookup.structure, 'data_types')
+
+        # test api_compare
+        url = reverse('api.compare', kwargs={
+            'structure_key': 'data_types',
+            'lang1': 'python',
+            'version1': '3',
+            'lang2': 'javascript',
+            'version2': 'ECMAScript 2009'
+        })
+        self.client.get(url)
+        lookup = LookupData.objects.last()
+        self.assertEqual(lookup.language1, 'python')
+        self.assertEqual(lookup.version1, '3')
+        self.assertEqual(lookup.language2, 'javascript')
+        self.assertEqual(lookup.version2, 'ECMAScript 2009')
+        self.assertEqual(lookup.structure, 'data_types')
 
 
