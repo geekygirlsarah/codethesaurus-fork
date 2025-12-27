@@ -233,9 +233,9 @@
     "find_element_at_position": {
       "code": "indexOfObjectIdenticalTo:"
     },
-    "find_element_by_value": {
-      "code": "containsObject:",
-      "name": "Find/search for an element by value"
+    "get_index_of_element": {
+      "code": "[myArray indexOfObject:@\"value\"]",
+      "name": "Get the index of an element by value"
     },
     "find_minimum_element": {
       "not-implemented": "true",
@@ -244,6 +244,10 @@
     "find_maximum_element": {
       "not-implemented": "true",
       "name": "Find the maximum value in a list"
+    },
+    "contains_element": {
+      "code": "[myArray containsObject:@\"value\"]",
+      "name": "Check if the list contains a specific element"
     },
     "convert_list_to_string": {
       "code": "NSString * result = [[array valueForKey:@\"description\"] componentsJoinedByString:@\"\"];",

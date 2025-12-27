@@ -174,8 +174,8 @@
       "name": "Delete the set",
       "code": "Automatic compile-time deterministic memory management"
     },
-    "find_element_by_value": {
-      "name": "Find/search for an element by value",
+    "get_index_of_element": {
+      "name": "Get the index of an element by value",
       "code": "list.find item"
     },
     "find_minimum_element": {
@@ -185,6 +185,10 @@
     "find_maximum_element": {
       "name": "Find the maximum value in a list",
       "code": "list.high"
+    },
+    "contains_element": {
+      "name": "Check if the list contains a specific element",
+      "code": "item in list"
     },
     "convert_list_to_string": {
       "name": "Convert a list to a string",
