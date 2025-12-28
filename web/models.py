@@ -377,7 +377,7 @@ class SiteVisit(models.Model):
 
 class LookupData(models.Model):
     id = models.BigAutoField(primary_key=True)
-    date_time = models.DateTimeField
+    date_time = models.DateTimeField(auto_now_add=True)
     language1 = models.CharField(max_length=50)
     version1 = models.CharField(max_length=20, default='')
     language2 = models.CharField(max_length=50)

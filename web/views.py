@@ -10,6 +10,7 @@ from django.http import (
     HttpResponseNotFound,
     HttpResponseServerError
 )
+from django.db.models import Count, Q
 from django.shortcuts import HttpResponse, render
 from django.utils.html import escape, strip_tags
 from django.views.decorators.http import require_http_methods
@@ -112,6 +113,150 @@ def index(request):
         'description': 'Code Thesaurus: A polyglot developer reference tool'
     }
     return render(request, 'index.html', content)
+
+
+@require_http_methods(['GET'])
+def statistics(request):
+    """
+    Renders the statistics page (/statistics/)
+
+    :param request: HttpRequest object
+    :return: HttpResponse object with rendered object of the page
+    """
+    store_url_info(request)
+
+    meta_info = MetaInfo()
+
+    # Most popular languages (considering both language1 and language2)
+    # We need to aggregate counts for each language across both fields.
+    # A simple way is to get counts for each and then merge them in Python.
+    lang1_counts = LookupData.objects.values('language1').annotate(count=Count('language1'))
+    lang2_counts = LookupData.objects.exclude(language2='').values('language2').annotate(count=Count('language2'))
+
+    combined_counts = {}
+    for item in lang1_counts:
+        lang = item['language1']
+        combined_counts[lang] = combined_counts.get(lang, 0) + item['count']
+    for item in lang2_counts:
+        lang = item['language2']
+        combined_counts[lang] = combined_counts.get(lang, 0) + item['count']
+
+    sorted_langs = sorted(combined_counts.items(), key=lambda x: x[1], reverse=True)
+    popular_languages = []
+    for lang_key, count in sorted_langs[:10]:
+        try:
+            name = meta_info.language_name(lang_key)
+        except (KeyError, MissingLanguageError):
+            name = lang_key
+        popular_languages.append({'name': name, 'count': count})
+
+    # Most popular structures
+    structure_counts = LookupData.objects.values('structure').annotate(count=Count('structure')).order_by('-count')[:10]
+    popular_structures = []
+    for item in structure_counts:
+        try:
+            name = meta_info.structure_name(item['structure'])
+        except (KeyError, MissingStructureError):
+            name = item['structure']
+        popular_structures.append({'name': name, 'count': item['count']})
+
+    # Most popular comparisons
+    # Using a technique to ensure (lang1, lang2) is treated the same as (lang2, lang1) if we wanted to,
+    # but let's keep it simple and just look at pairs as they are.
+    comparison_counts = LookupData.objects.exclude(language2='').values('language1', 'language2').annotate(count=Count('id')).order_by('-count')[:10]
+    popular_comparisons = []
+    for item in comparison_counts:
+        try:
+            name1 = meta_info.language_name(item['language1'])
+        except (KeyError, MissingLanguageError):
+            name1 = item['language1']
+        try:
+            name2 = meta_info.language_name(item['language2'])
+        except (KeyError, MissingLanguageError):
+            name2 = item['language2']
+        popular_comparisons.append({'lang1': name1, 'lang2': name2, 'count': item['count']})
+
+    total_visits = SiteVisit.objects.count()
+    total_lookups = LookupData.objects.count()
+
+    # Unique language comparisons
+    unique_comparisons_count = LookupData.objects.exclude(language2='').values('language1', 'language2').distinct().count()
+
+    # Unique concept categories (structures) looked up
+    unique_structures_count = LookupData.objects.values('structure').distinct().count()
+
+    # Most popular concept-language pairs (e.g., Javascript functions)
+    concept_lang_counts = {}
+    for entry in LookupData.objects.all():
+        # Count for language 1
+        key1 = (entry.language1, entry.structure)
+        concept_lang_counts[key1] = concept_lang_counts.get(key1, 0) + 1
+        # Count for language 2 if it exists
+        if entry.language2:
+            key2 = (entry.language2, entry.structure)
+            concept_lang_counts[key2] = concept_lang_counts.get(key2, 0) + 1
+    
+    sorted_concept_langs = sorted(concept_lang_counts.items(), key=lambda x: x[1], reverse=True)
+    popular_concept_langs = []
+    for (lang_key, struct_key), count in sorted_concept_langs[:10]:
+        try:
+            lang_name = meta_info.language_name(lang_key)
+        except (KeyError, MissingLanguageError):
+            lang_name = lang_key
+        try:
+            struct_name = meta_info.structure_name(struct_key)
+        except (KeyError, MissingStructureError):
+            struct_name = struct_key
+        popular_concept_langs.append({
+            'label': f"{lang_name} {struct_name}",
+            'lang': lang_name,
+            'struct': struct_name,
+            'count': count
+        })
+
+    # Recent lookups
+    recent_lookups_query = LookupData.objects.order_by('-date_time')[:10]
+    recent_lookups = []
+    for item in recent_lookups_query:
+        try:
+            name1 = meta_info.language_name(item.language1)
+        except (KeyError, MissingLanguageError):
+            name1 = item.language1
+        try:
+            name2 = meta_info.language_name(item.language2) if item.language2 else None
+        except (KeyError, MissingLanguageError):
+            name2 = item.language2
+        
+        try:
+            struct_name = meta_info.structure_name(item.structure)
+        except (KeyError, MissingStructureError):
+            struct_name = item.structure
+
+        recent_lookups.append({
+            'lang1': name1,
+            'lang2': name2,
+            'structure': struct_name,
+            'date_time': item.date_time
+        })
+
+    import json
+    context = {
+        'title': 'Statistics',
+        'popular_languages': popular_languages,
+        'popular_structures': popular_structures,
+        'popular_comparisons': popular_comparisons,
+        'popular_concept_langs': popular_concept_langs,
+        'recent_lookups': recent_lookups,
+        'total_visits': total_visits,
+        'total_lookups': total_lookups,
+        'unique_comparisons_count': unique_comparisons_count,
+        'unique_structures_count': unique_structures_count,
+        'popular_languages_json': json.dumps(popular_languages),
+        'popular_structures_json': json.dumps(popular_structures),
+        'popular_concept_langs_json': json.dumps(popular_concept_langs),
+    }
+
+    return render(request, 'statistics.html', context)
 
 
 @require_http_methods(['GET'])
