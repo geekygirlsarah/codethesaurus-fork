@@ -10,6 +10,7 @@ from django.http import (
     HttpResponseNotFound,
     HttpResponseServerError
 )
+from django.db import transaction
 from django.db.models import Count, Q
 from django.shortcuts import HttpResponse, render
 from django.utils.html import escape, strip_tags
@@ -49,7 +50,8 @@ def store_url_info(request):
             user_agent=user_agent,
             referer=referer,
         )
-        visit.save()
+        with transaction.atomic():
+            visit.save()
         return visit
     except Exception as e:
         logging.error(f"Failed to store URL info: {e}")
@@ -68,7 +70,8 @@ def store_lookup_info(request, visit, language1, version1, language2, version2, 
             structure=structure,
             site_visit=visit
         )
-        info.save()
+        with transaction.atomic():
+            info.save()
     except Exception as e:
         logging.error(f"Failed to store lookup info: {e}")
 
@@ -83,7 +86,8 @@ def store_missing_info(visit, item_type, item_value, language_context=None):
             language_context=language_context,
             site_visit=visit
         )
-        info.save()
+        with transaction.atomic():
+            info.save()
     except Exception as e:
         logging.error(f"Failed to store missing info: {e}")
 
