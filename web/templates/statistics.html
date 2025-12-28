@@ -137,6 +137,48 @@
     </div>
 
     <div class="row">
+        <div class="col-12">
+            <div class="card mb-4 shadow-sm border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Most Requested Missing Items</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small">Tracking languages, structures, or concepts that were requested but are currently missing from the site.</p>
+                    {% if missing_items %}
+                    <table class="table table-hover table-sm">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th class="text-end">Requests</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in missing_items %}
+                            <tr>
+                                <td>
+                                    {% if item.type == 'language' %}
+                                    <span class="badge bg-primary">Language</span>
+                                    {% elif item.type == 'structure' %}
+                                    <span class="badge bg-info">Structure</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Concept</span>
+                                    {% endif %}
+                                    {{ item.label }}
+                                </td>
+                                <td class="text-end">{{ item.count }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <p class="text-center">No missing items requested yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
         <div class="col-md-6">
             <div class="card mb-4 shadow-sm">
                 <div class="card-header bg-info text-white">

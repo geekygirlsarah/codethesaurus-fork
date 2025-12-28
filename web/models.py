@@ -384,3 +384,12 @@ class LookupData(models.Model):
     version2 = models.CharField(max_length=20, default='')
     structure = models.CharField(max_length=50)
     site_visit = models.ForeignKey(SiteVisit, on_delete=models.CASCADE)
+
+
+class MissingLookup(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    date_time = models.DateTimeField(auto_now_add=True)
+    item_type = models.CharField(max_length=20)  # 'language', 'structure', 'concept'
+    item_value = models.CharField(max_length=100)
+    language_context = models.CharField(max_length=50, blank=True, null=True)
+    site_visit = models.ForeignKey(SiteVisit, on_delete=models.CASCADE)

@@ -25,6 +25,7 @@ from web.models import (
     LookupData,
     MetaInfo,
     MissingLanguageError,
+    MissingLookup,
     MissingStructureError,
     SiteVisit,
 )
@@ -58,6 +59,16 @@ def store_lookup_info(request, visit, language1, version1, language2, version2, 
         language2=language2,
         version2=version2,
         structure=structure,
+        site_visit=visit
+    )
+    info.save()
+
+
+def store_missing_info(visit, item_type, item_value, language_context=None):
+    info = MissingLookup(
+        item_type=item_type,
+        item_value=item_value,
+        language_context=language_context,
         site_visit=visit
     )
     info.save()
@@ -239,6 +250,34 @@ def statistics(request):
             'date_time': item.date_time
         })
 
+    # Missing items statistics
+    missing_items_counts = MissingLookup.objects.values('item_type', 'item_value', 'language_context') \
+        .annotate(count=Count('id')).order_by('-count')[:15]
+    
+    missing_items = []
+    for item in missing_items_counts:
+        label = item['item_value']
+        if item['item_type'] == 'language':
+            label = f"Language: {item['item_value']}"
+        elif item['item_type'] == 'structure':
+            try:
+                lang_name = meta_info.language_name(item['language_context'])
+            except (KeyError, MissingLanguageError):
+                lang_name = item['language_context']
+            label = f"Structure: {item['item_value']} (for {lang_name})"
+        elif item['item_type'] == 'concept':
+            try:
+                lang_name = meta_info.language_name(item['language_context'])
+            except (KeyError, MissingLanguageError):
+                lang_name = item['language_context']
+            label = f"Concept: {item['item_value']} (missing in {lang_name})"
+        
+        missing_items.append({
+            'label': label,
+            'count': item['count'],
+            'type': item['item_type']
+        })
+
     import json
     context = {
         'title': 'Statistics',
@@ -247,6 +286,7 @@ def statistics(request):
         'popular_comparisons': popular_comparisons,
         'popular_concept_langs': popular_concept_langs,
         'recent_lookups': recent_lookups,
+        'missing_items': missing_items,
         'total_visits': total_visits,
         'total_lookups': total_lookups,
         'unique_comparisons_count': unique_comparisons_count,
@@ -300,6 +340,12 @@ def concepts(request):
     try:
         languages = meta_info.load_languages(language_strings, meta_structure)
     except MissingStructureError as missing_structure:
+        store_missing_info(
+            visit,
+            'structure',
+            missing_structure.structure.key,
+            missing_structure.language_key
+        )
         return HttpResponseNotFound(render(
             request,
             "error_missing_structure.html",
@@ -317,6 +363,7 @@ def concepts(request):
             }
         ))
     except MissingLanguageError as missing_language:
+        store_missing_info(visit, 'language', missing_language.key)
         errors.append(f"The language \"{missing_language.key}\" isn't valid. \
                         Double-check your URL and try again.")
 
@@ -338,7 +385,7 @@ def concepts(request):
 
     for (category_key, category) in meta_structure.categories.items():
         concept_keys = list(category.keys())
-        concepts_list = [concepts_data(key, name, languages, lexers) for (key, name) in category.items()]
+        concepts_list = [concepts_data(key, name, languages, lexers, visit) for (key, name) in category.items()]
 
         category_entry = {
             "key": category_key,
@@ -503,7 +550,7 @@ def format_comment_for_display(concept_key, lang):
     return lang.concept_comment(concept_key)
 
 
-def concepts_data(key, name, languages, lexers=None):
+def concepts_data(key, name, languages, lexers=None, visit=None):
     """
     Generates the comparision object of a single concept
 
@@ -511,11 +558,17 @@ def concepts_data(key, name, languages, lexers=None):
     :param name: name of the concept
     :param languages: list of languages to compare / get a reference for
     :param lexers: optional list of pre-fetched lexers corresponding to languages
+    :param visit: optional SiteVisit for logging missing items
     :return: string with code with applied HTML formatting
     """
     data = []
     for i, lang in enumerate(languages):
         lexer = lexers[i] if lexers else None
+        
+        # Log if concept is not implemented
+        if visit and not lang.concept_implemented(key):
+            store_missing_info(visit, 'concept', key, lang.key)
+            
         data.append({
             "code": format_code_for_display(key, lang, lexer),
             "comment": format_comment_for_display(key, lang)
@@ -584,9 +637,16 @@ def api_reference(request, structure_key, lang, version):
     try:
         response = lang_obj.load_filled_concepts(structure_key, version)
     except Exception as e:
+        # Determine if it's a language or structure issue
+        # If Language(lang, "") failed to find versions, it might be a language issue
+        if not lang_obj.versions():
+            store_missing_info(visit, 'language', lang)
+        else:
+            store_missing_info(visit, 'structure', structure_key, lang)
         return error_handler_404_not_found(request, e)
 
     if response is False:
+        store_missing_info(visit, 'structure', structure_key, lang)
         return HttpResponseNotFound()
 
     store_lookup_info(
@@ -615,9 +675,15 @@ def api_compare(request, structure_key, lang1, version1, lang2, version2):
     """
     visit = store_url_info(request)
 
-    response = Language(lang1, "").load_comparison(structure_key, lang2, version2, version1)
+    try:
+        response = Language(lang1, "").load_comparison(structure_key, lang2, version2, version1)
+    except Exception:
+        # Simple logging for now
+        store_missing_info(visit, 'structure', structure_key, f"{lang1}/{lang2}")
+        return HttpResponseNotFound()
 
     if response is False:
+        store_missing_info(visit, 'structure', structure_key, f"{lang1}/{lang2}")
         return HttpResponseNotFound()
 
     store_lookup_info(
