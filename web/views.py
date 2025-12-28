@@ -33,45 +33,59 @@ from web.thesaurus_template_generators import generate_language_template
 
 
 def store_url_info(request):
-    if 'HTTP_USER_AGENT' in request.META:
-        user_agent = request.META['HTTP_USER_AGENT']
-    else:
-        user_agent = ""
+    try:
+        if 'HTTP_USER_AGENT' in request.META:
+            user_agent = request.META['HTTP_USER_AGENT']
+        else:
+            user_agent = ""
 
-    if 'HTTP_REFERER' in request.META:
-        referer = request.META['HTTP_REFERER']
-    else:
-        referer = ""
+        if 'HTTP_REFERER' in request.META:
+            referer = request.META['HTTP_REFERER']
+        else:
+            referer = ""
 
-    visit = SiteVisit(
-        url=request.get_full_path(),
-        user_agent=user_agent,
-        referer=referer,
-    )
-    visit.save()
-    return visit
+        visit = SiteVisit(
+            url=request.get_full_path(),
+            user_agent=user_agent,
+            referer=referer,
+        )
+        visit.save()
+        return visit
+    except Exception as e:
+        logging.error(f"Failed to store URL info: {e}")
+        return None
 
 
 def store_lookup_info(request, visit, language1, version1, language2, version2, structure):
-    info = LookupData(
-        language1=language1,
-        version1=version1,
-        language2=language2,
-        version2=version2,
-        structure=structure,
-        site_visit=visit
-    )
-    info.save()
+    if not visit:
+        return
+    try:
+        info = LookupData(
+            language1=language1,
+            version1=version1,
+            language2=language2,
+            version2=version2,
+            structure=structure,
+            site_visit=visit
+        )
+        info.save()
+    except Exception as e:
+        logging.error(f"Failed to store lookup info: {e}")
 
 
 def store_missing_info(visit, item_type, item_value, language_context=None):
-    info = MissingLookup(
-        item_type=item_type,
-        item_value=item_value,
-        language_context=language_context,
-        site_visit=visit
-    )
-    info.save()
+    if not visit:
+        return
+    try:
+        info = MissingLookup(
+            item_type=item_type,
+            item_value=item_value,
+            language_context=language_context,
+            site_visit=visit
+        )
+        info.save()
+    except Exception as e:
+        logging.error(f"Failed to store missing info: {e}")
 
 
 @require_http_methods(['GET'])
@@ -496,9 +510,12 @@ def error_handler_500_server_error(request):
     :param request: HttpRequest object
     :return: HttpResponse object with rendered object of the page
     """
-    store_url_info(request)
+    try:
+        store_url_info(request)
+    except Exception:
+        pass
 
-    logging.error(request)
+    logging.error(f"500 error at {request.get_full_path()}")
     response = render(request, 'error500.html')
     return HttpResponseServerError(response)
 
