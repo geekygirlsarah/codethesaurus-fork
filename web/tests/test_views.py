@@ -1,9 +1,18 @@
 """Tests for the views of codethesaur.us"""
+import logging
 from http import HTTPStatus
 
 from django.test import TestCase
 from django.urls import reverse
 from web.models import LookupData
+
+
+def setUpModule():
+    logging.disable(logging.CRITICAL)
+
+
+def tearDownModule():
+    logging.disable(logging.NOTSET)
 
 
 class TestViews(TestCase):
