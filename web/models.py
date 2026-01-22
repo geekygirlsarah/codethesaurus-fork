@@ -58,7 +58,19 @@ class ThesaurusEntry:
         self.name = name
         self.concepts = None
         self.version = None
-        self.language_dir = os.path.join("web", "thesauruses", self.key)
+        self.language_dir = None
+        for category in os.listdir(os.path.join("web", "thesauruses")):
+            if category == "_meta" or not os.path.isdir(os.path.join("web", "thesauruses", category)):
+                continue
+            potential_dir = os.path.join("web", "thesauruses", category, self.key)
+            if os.path.exists(potential_dir):
+                self.language_dir = potential_dir
+                break
+        
+        if self.language_dir is None:
+            # Fallback for when it doesn't exist yet (e.g. during template generation)
+            # Defaulting to 'langs' if not found, but this might need refinement
+            self.language_dir = os.path.join("web", "thesauruses", "langs", self.key)
         self.version = None
 
 
@@ -282,16 +294,29 @@ class ThesaurusMetaInfo:
         if ThesaurusMetaInfo._cached_structures is not None:
             self.structures = ThesaurusMetaInfo._cached_structures
             self.languages = ThesaurusMetaInfo._cached_languages
+            self.categories = getattr(ThesaurusMetaInfo, "_cached_categories", {})
+            self.category_structures = getattr(ThesaurusMetaInfo, "_cached_category_structures", {})
             return
 
         meta_info_file_path = os.path.join(
             "web", "thesauruses", "meta_info.json")
         with open(meta_info_file_path, 'r', encoding='UTF-8') as meta_file:
             meta_info_json = json.load(meta_file)
-        self.structures = meta_info_json["structures"]
+        
+        self.categories = meta_info_json.get("categories", {})
         self.languages = meta_info_json["languages"]
+        
+        # Flatten structures for backward compatibility where needed, 
+        # but keep track of category-specific ones
+        self.category_structures = meta_info_json["structures"]
+        self.structures = {}
+        for cat_structs in self.category_structures.values():
+            self.structures.update(cat_structs)
+
         ThesaurusMetaInfo._cached_structures = self.structures
         ThesaurusMetaInfo._cached_languages = self.languages
+        ThesaurusMetaInfo._cached_categories = self.categories
+        ThesaurusMetaInfo._cached_category_structures = self.category_structures
         
 
     def entry_name(self, entry_key):
@@ -378,9 +403,9 @@ class SiteVisit(models.Model):
 class LookupData(models.Model):
     id = models.BigAutoField(primary_key=True)
     date_time = models.DateTimeField(auto_now_add=True)
-    language1 = models.CharField(max_length=50)
+    entry1 = models.CharField(max_length=50)
     version1 = models.CharField(max_length=20, default='')
-    language2 = models.CharField(max_length=50)
+    entry2 = models.CharField(max_length=50)
     version2 = models.CharField(max_length=20, default='')
     structure = models.CharField(max_length=50)
     site_visit = models.ForeignKey(SiteVisit, on_delete=models.CASCADE)

@@ -58,14 +58,14 @@ def store_url_info(request):
         return None
 
 
-def store_lookup_info(request, visit, language1, version1, language2, version2, structure):
+def store_lookup_info(request, visit, entry1, version1, entry2, version2, structure):
     if not visit:
         return
     try:
         info = LookupData(
-            language1=language1,
+            entry1=entry1,
             version1=version1,
-            language2=language2,
+            entry2=entry2,
             version2=version2,
             structure=structure,
             site_visit=visit
@@ -102,41 +102,76 @@ def index(request):
     """
 
     store_url_info(request)
-    if "lang" in request.GET and "concept" in request.GET:
+    if "entry" in request.GET and "concept" in request.GET:
         return concepts(request)
 
     meta_info = ThesaurusMetaInfo()
+    thesauruses_dir = os.path.join(BASE_DIR, 'web', 'thesauruses')
+    meta_dir = os.path.join(thesauruses_dir, '_meta')
+    meta_concepts = os.listdir(meta_dir)
 
     meta_data_entries = dict()
     for key in meta_info.languages:
         entry = meta_info.entry(key)
-        meta_data_entries[key] = [{
+        # Find which category this entry belongs to
+        category_name = "Other"
+        for cat_key, cat_label in meta_info.categories.items():
+            if os.path.exists(os.path.join(thesauruses_dir, cat_key, key)):
+                category_name = cat_label
+                break
+        
+        meta_data_entries[key] = {
             "name": entry.name,
-            "version": version,
-            "availStructs": []
-        } for version in entry.versions()]
+            "category": category_name,
+            "versions": [{
+                "name": entry.name,
+                "version": version,
+                "availStructs": []
+            } for version in entry.versions()]
+        }
 
-    random_entries = random.sample(list(meta_data_entries.values()), k=3)
+    random_entries = random.sample(list(meta_data_entries.values()), k=min(3, len(meta_data_entries)))
 
-    thesauruses_dir = os.path.join(BASE_DIR, 'web', 'thesauruses')
-    meta_dir = os.path.join(thesauruses_dir, '_meta')
-    meta_concepts = os.listdir(meta_dir)
-    for entry_dir in os.listdir(thesauruses_dir):
-        if 'meta' in entry_dir:
+    for category in os.listdir(thesauruses_dir):
+        category_path = os.path.join(thesauruses_dir, category)
+        if category == '_meta' or not os.path.isdir(category_path):
             continue
-        for ver in os.listdir(os.path.join(thesauruses_dir, entry_dir)):
-            for concept_json in meta_concepts:
-                concept_name = concept_json.split('.')[0]
-                if os.path.isdir(os.path.join(thesauruses_dir, entry_dir, ver)):
-                    if concept_json in os.listdir(os.path.join(thesauruses_dir, entry_dir, ver)):
-                        for i in meta_data_entries[entry_dir]:
-                            if i['version'] == ver:
-                                i['availStructs'].append(concept_name)
-                                break
+        for entry_dir in os.listdir(category_path):
+            entry_path = os.path.join(category_path, entry_dir)
+            if not os.path.isdir(entry_path):
+                continue
+            for ver in os.listdir(entry_path):
+                ver_path = os.path.join(entry_path, ver)
+                if not os.path.isdir(ver_path):
+                    continue
+                for concept_json in meta_concepts:
+                    concept_name = concept_json.split('.')[0]
+                    if concept_json in os.listdir(ver_path):
+                        if entry_dir in meta_data_entries:
+                            for i in meta_data_entries[entry_dir]['versions']:
+                                if i['version'] == ver:
+                                    i['availStructs'].append(concept_name)
+                                    break
+
+    # Group meta_data_entries by category for the template
+    grouped_entries = []
+    for cat_key, cat_label in meta_info.categories.items():
+        category_data = {
+            "key": cat_key,
+            "label": cat_label,
+            "entries": {},
+            "structures": meta_info.category_structures.get(cat_key, {})
+        }
+        for key, data in meta_data_entries.items():
+            if data['category'] == cat_label:
+                category_data["entries"][key] = data['versions']
+        
+        if category_data["entries"]:
+            grouped_entries.append(category_data)
 
     content = {
         'title': 'Welcome',
-        'languages': meta_data_entries,
+        'languages': grouped_entries,
         'structures': meta_info.structures,
         'randomLanguages': random_entries,
         'description': 'Code Thesaurus: A polyglot developer reference tool'
@@ -159,16 +194,16 @@ def statistics(request):
     # Most popular languages (considering both language1 and language2)
     # We need to aggregate counts for each language across both fields.
     # A simple way is to get counts for each and then merge them in Python.
-    lang1_counts = LookupData.objects.values('language1').annotate(count=Count('language1'))
-    lang2_counts = LookupData.objects.exclude(language2='').values('language2').annotate(count=Count('language2'))
+    entry1_counts = LookupData.objects.values('entry1').annotate(count=Count('entry1'))
+    entry2_counts = LookupData.objects.exclude(entry2='').values('entry2').annotate(count=Count('entry2'))
 
     combined_counts = {}
-    for item in lang1_counts:
-        lang = item['language1']
-        combined_counts[lang] = combined_counts.get(lang, 0) + item['count']
-    for item in lang2_counts:
-        lang = item['language2']
-        combined_counts[lang] = combined_counts.get(lang, 0) + item['count']
+    for item in entry1_counts:
+        entry = item['entry1']
+        combined_counts[entry] = combined_counts.get(entry, 0) + item['count']
+    for item in entry2_counts:
+        entry = item['entry2']
+        combined_counts[entry] = combined_counts.get(entry, 0) + item['count']
 
     sorted_langs = sorted(combined_counts.items(), key=lambda x: x[1], reverse=True)
     popular_languages = []
@@ -192,24 +227,24 @@ def statistics(request):
     # Most popular comparisons
     # Using a technique to ensure (lang1, lang2) is treated the same as (lang2, lang1) if we wanted to,
     # but let's keep it simple and just look at pairs as they are.
-    comparison_counts = LookupData.objects.exclude(language2='').values('language1', 'language2').annotate(count=Count('id')).order_by('-count')[:10]
+    comparison_counts = LookupData.objects.exclude(entry2='').values('entry1', 'entry2').annotate(count=Count('id')).order_by('-count')[:10]
     popular_comparisons = []
     for item in comparison_counts:
         try:
-            name1 = meta_info.entry_name(item['language1'])
+            name1 = meta_info.entry_name(item['entry1'])
         except (KeyError, MissingEntryError):
-            name1 = item['language1']
+            name1 = item['entry1']
         try:
-            name2 = meta_info.entry_name(item['language2'])
+            name2 = meta_info.entry_name(item['entry2'])
         except (KeyError, MissingEntryError):
-            name2 = item['language2']
+            name2 = item['entry2']
         popular_comparisons.append({'lang1': name1, 'lang2': name2, 'count': item['count']})
 
     total_visits = SiteVisit.objects.count()
     total_lookups = LookupData.objects.count()
 
     # Unique language comparisons
-    unique_comparisons_count = LookupData.objects.exclude(language2='').values('language1', 'language2').distinct().count()
+    unique_comparisons_count = LookupData.objects.exclude(entry2='').values('entry1', 'entry2').distinct().count()
 
     # Unique concept categories (structures) looked up
     unique_structures_count = LookupData.objects.values('structure').distinct().count()
@@ -218,12 +253,12 @@ def statistics(request):
     concept_lang_counts = {}
     for entry in LookupData.objects.all():
         # Count for language 1
-        key1 = (entry.language1, entry.structure)
-        concept_lang_counts[key1] = concept_lang_counts.get(key1, 0) + 1
+        key1 = (entry.entry1, entry.structure)
+        concept_lang_counts[key1] = concept_lang_counts[key1] + 1 if key1 in concept_lang_counts else 1
         # Count for language 2 if it exists
-        if entry.language2:
-            key2 = (entry.language2, entry.structure)
-            concept_lang_counts[key2] = concept_lang_counts.get(key2, 0) + 1
+        if entry.entry2:
+            key2 = (entry.entry2, entry.structure)
+            concept_lang_counts[key2] = concept_lang_counts[key2] + 1 if key2 in concept_lang_counts else 1
     
     sorted_concept_langs = sorted(concept_lang_counts.items(), key=lambda x: x[1], reverse=True)
     popular_concept_langs = []
@@ -248,13 +283,13 @@ def statistics(request):
     recent_lookups = []
     for item in recent_lookups_query:
         try:
-            name1 = meta_info.entry_name(item.language1)
+            name1 = meta_info.entry_name(item.entry1)
         except (KeyError, MissingEntryError):
-            name1 = item.language1
+            name1 = item.entry1
         try:
-            name2 = meta_info.entry_name(item.language2) if item.language2 else None
+            name2 = meta_info.entry_name(item.entry2) if item.entry2 else None
         except (KeyError, MissingEntryError):
-            name2 = item.language2
+            name2 = item.entry2
         
         try:
             struct_name = meta_info.structure_name(item.structure)
@@ -344,7 +379,7 @@ def concepts(request):
     """
     visit = store_url_info(request)
 
-    language_strings, structure_key, errors = clean_concepts_parameters(request.GET)
+    entry_strings, structure_key, errors = clean_concepts_parameters(request.GET)
     if errors:
         return render_errors(request, errors)
 
@@ -356,13 +391,13 @@ def concepts(request):
                 Double-check your URL and try again."])
 
     try:
-        entries = meta_info.load_entries(language_strings, meta_structure)
+        entries = meta_info.load_entries(entry_strings, meta_structure)
     except MissingStructureError as missing_structure:
         store_missing_info(
             visit,
             'structure',
             missing_structure.structure.key,
-            missing_structure.language_key
+            missing_structure.entry_key
         )
         return HttpResponseNotFound(render(
             request,
@@ -370,13 +405,13 @@ def concepts(request):
             {
                 "key": missing_structure.structure.key,
                 "name": missing_structure.structure.name,
-                "lang": missing_structure.language_key,
-                "lang_name": missing_structure.language_name,
-                "version": missing_structure.language_version,
+                "entry": missing_structure.entry_key,
+                "entry_name": missing_structure.entry_name,
+                "version": missing_structure.entry_version,
                 "template": generate_entry_template(
-                    missing_structure.language_key,
+                    missing_structure.entry_key,
                     missing_structure.structure.key,
-                    missing_structure.language_version
+                    missing_structure.entry_version
                 )
             }
         ))
@@ -434,12 +469,11 @@ def concepts(request):
 def render_concepts(request, entries, structure, all_categories):
     """Renders the `structure` page for all `entries`"""
 
-    entry_name_versions = [f"{l.name} ({l.version})" for l in entries]
+    entry_name_versions = [f"{l.name} (version {l.version})" for l in entries]
     if len(entries) == 1:
         title = f"Reference for {entry_name_versions[0]}"
     else:
-        title = f"Comparing {', '.join(entry_name_versions[:-1])}\
-                and {entry_name_versions[-1]}"
+        title = f"Comparing {', '.join(entry_name_versions[:-1])} and {entry_name_versions[-1]}"
 
 
     response = {
@@ -615,28 +649,30 @@ def render_errors(request, errors):
 def clean_concepts_parameters(parameters):
     """Verify and clean up the parameters for concepts view"""
 
-    language_strings = list(parameters.getlist('lang'))
+    entry_strings = list(parameters.getlist('entry'))
     # legacy parameter names
+    if "lang" in parameters:
+        entry_strings.append(parameters['lang'])
     if "lang1" in parameters:
-        language_strings.append(parameters['lang1'])
+        entry_strings.append(parameters['lang1'])
     if "lang2" in parameters:
-        language_strings.append(parameters['lang2'])
+        entry_strings.append(parameters['lang2'])
 
-    language_keys_versions = []
-    for lang in language_strings:
-        key_version = escape(strip_tags(lang)).split(";")
+    entry_keys_versions = []
+    for entry_str in entry_strings:
+        key_version = escape(strip_tags(entry_str)).split(";")
         try:
-            language_keys_versions.append((key_version[0], key_version[1]))
+            entry_keys_versions.append((key_version[0], key_version[1]))
         except IndexError:
-            language_keys_versions.append((key_version[0], None))
+            entry_keys_versions.append((key_version[0], None))
     structure_key = escape(strip_tags(parameters.get('concept', '')))
 
     errors = []
     if not structure_key:
         errors.append("The URL didn't specify a structure/concept to look up.")
-    if not language_keys_versions:
-        errors.append("The URL didn't specify any languages to look up.")
-    return language_keys_versions, structure_key, errors
+    if not entry_keys_versions:
+        errors.append("The URL didn't specify any entries to look up.")
+    return entry_keys_versions, structure_key, errors
 
 
 # API functions

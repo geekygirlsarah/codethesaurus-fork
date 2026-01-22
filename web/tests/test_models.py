@@ -14,7 +14,10 @@ class TestMetaStructures(TestCase):
         self.metainfo = ThesaurusMetaInfo()
         with open("web/thesauruses/meta_info.json", 'r') as meta_file:
             meta_data = json.load(meta_file)
-        self.structures = meta_data["structures"]
+        self.category_structures = meta_data["structures"]
+        self.structures = {}
+        for cat_structs in self.category_structures.values():
+            self.structures.update(cat_structs)
         self.languages = meta_data["languages"]
 
         self.sample = dict()
@@ -146,10 +149,10 @@ class TestMetaStructures(TestCase):
 
     def test_language_versions(self):
         """test ThesaurusEntry#versions"""
-        language = ThesaurusEntry("python", "Python")
+        language = ThesaurusEntry("mysql", "MySQL")
         versions = language.versions()
         self.assertGreater(len(versions), 0)
-        self.assertIn("3", versions)
+        self.assertIn("8", versions)
 
     def test_language_load_filled_concepts(self):
         """test ThesaurusEntry#load_filled_concepts"""
@@ -192,6 +195,9 @@ class TestMetaStructures(TestCase):
         """test ThesaurusMetaInfo#load_entries with missing structure"""
         from web.models import MissingStructureError
         structure = self.metainfo.structure("data_types")
-        with self.assertRaises(MissingStructureError):
+        with self.assertRaises(MissingStructureError) as cm:
             # python 3 definitely has data_types, but let's try something that doesn't exist
             self.metainfo.load_entries([("python", "non_existent_version")], structure)
+        
+        self.assertEqual(cm.exception.entry_key, "python")
+        self.assertEqual(cm.exception.entry_version, "non_existent_version")
