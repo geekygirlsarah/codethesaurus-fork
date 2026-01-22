@@ -2,7 +2,7 @@ from pathlib import Path
 
 from django.core.management.base import BaseCommand, CommandError
 
-from web.models import MetaInfo
+from web.models import ThesaurusMetaInfo
 
 
 class Command(BaseCommand):
@@ -16,7 +16,7 @@ class Command(BaseCommand):
         self.meta_path = self.thesauruses_path / "_meta"
 
     def handle(self, *args, **options):
-        self.metainfo = MetaInfo()
+        self.metainfo = ThesaurusMetaInfo()
         
         self.check_thesaurus_directories()
         self.check_meta_info_consistency()
@@ -61,10 +61,10 @@ class Command(BaseCommand):
                 self.report_error(f"{lang_name} is listed as a language in `meta_info.json` but the directory `{path}` doesn't exist")
 
     def check_meta_files_consistency(self):
-        """Check structures in _meta match those in MetaInfo"""
+        """Check structures in _meta match those in ThesaurusMetaInfo"""
         meta_files = {f.name for f in self.meta_path.iterdir() if f.is_file()}
         
-        # Check files in _meta are listed in MetaInfo
+        # Check files in _meta are listed in ThesaurusMetaInfo
         for meta_file in meta_files:
             if not meta_file.endswith(".json"):
                 continue
@@ -72,7 +72,7 @@ class Command(BaseCommand):
             if structure_name not in self.metainfo.structures:
                 self.report_error(f"`{self.meta_path / meta_file}` is not listed as a structure in `meta_info.json`")
 
-        # Check structures listed in MetaInfo have corresponding files in _meta
+        # Check structures listed in ThesaurusMetaInfo have corresponding files in _meta
         for structure in self.metainfo.structures:
             path = self.meta_path / f"{structure}.json"
             if not path.is_file():

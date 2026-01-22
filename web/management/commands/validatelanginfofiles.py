@@ -80,7 +80,7 @@ class Command(BaseCommand):
 
         if not language_name:
             self.report_error(f"`{relative_path}` has an empty `language_name` attribute and needs to be updated")
-        elif language_name in ["Human-Friendly Language Name", "Human-Readable Language Name"]:
+        elif language_name in ["Human-Friendly ThesaurusEntry Name", "Human-Readable ThesaurusEntry Name"]:
             self.report_error(f"`{relative_path}` has the default `language_name` attribute and needs to be updated")
 
         if "categories" in data:

@@ -294,8 +294,8 @@ class TestViews(TestCase):
         self.assertIn('meta', response_data)
         self.assertIn('concepts1', response_data)
         self.assertIn('concepts2', response_data)
-        self.assertEqual(response_data['meta']['language_1'], 'python')
-        self.assertEqual(response_data['meta']['language_2'], 'javascript')
+        self.assertEqual(response_data['meta']['entry_1'], 'python')
+        self.assertEqual(response_data['meta']['entry_2'], 'javascript')
 
     def test_concepts_view_valid_params(self):
         """Test concepts view with valid parameters that should return 200"""

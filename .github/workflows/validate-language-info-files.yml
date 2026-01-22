@@ -1,4 +1,4 @@
-name: Validate Language Info Files
+name: Validate ThesaurusEntry Info Files
 
 on:
   push:
@@ -10,7 +10,7 @@ on:
 
 jobs:
   run:
-    name: Validate Language Info Files
+    name: Validate ThesaurusEntry Info Files
     runs-on: ubuntu-latest
     steps:
 
