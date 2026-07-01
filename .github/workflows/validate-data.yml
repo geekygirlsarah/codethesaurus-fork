@@ -1,19 +1,28 @@
-name: Validate Meta Info File
+name: Validate Thesaurus Data
 
 on:
   push:
     branches:
       - main
+    paths:
+      - 'web/thesauruses/**'
+      - 'requirements.txt'
+      - 'manage.py'
+      - '.github/workflows/validate-data.yml'
   pull_request:
     branches:
       - main
+    paths:
+      - 'web/thesauruses/**'
+      - 'requirements.txt'
+      - 'manage.py'
+      - '.github/workflows/validate-data.yml'
 
 jobs:
-  run:
-    name: Validate Meta Info File
+  validate:
+    name: Validate Data Files
     runs-on: ubuntu-latest
     steps:
-
       - name: Checkout the branch
         uses: actions/checkout@v4
 
@@ -31,5 +40,8 @@ jobs:
       - name: Create SQLite local database
         run: python manage.py migrate
 
-      - name: Run validate command
+      - name: Validate Meta Info File
         run: python manage.py validatemetainfofile
+
+      - name: Validate Language Info Files
+        run: python manage.py validatelanginfofiles

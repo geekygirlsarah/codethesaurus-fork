@@ -2,6 +2,13 @@ name: Check Docker Build
 
 on:
   pull_request:
+    paths:
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - 'docker-entrypoint.sh'
+      - 'requirements.txt'
+      - 'Procfile'
+      - '.github/workflows/check-docker-build.yml'
 
 jobs:
   check:

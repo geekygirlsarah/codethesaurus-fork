@@ -4,9 +4,21 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'web/**'
+      - 'codethesaurus/**'
+      - 'requirements.txt'
+      - 'manage.py'
+      - '.github/workflows/run-unit-tests.yml'
   pull_request:
     branches:
       - main
+    paths:
+      - 'web/**'
+      - 'codethesaurus/**'
+      - 'requirements.txt'
+      - 'manage.py'
+      - '.github/workflows/run-unit-tests.yml'
 
 jobs:
   run:

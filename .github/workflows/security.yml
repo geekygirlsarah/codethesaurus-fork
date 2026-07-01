@@ -1,0 +1,59 @@
+name: Security Scans
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - '**.py'
+      - 'requirements.txt'
+      - '.github/workflows/security.yml'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - '**.py'
+      - 'requirements.txt'
+      - '.github/workflows/security.yml'
+  schedule:
+    - cron: '30 4 * * *' # Daily at 04:30 UTC
+
+jobs:
+  bandit:
+    name: Bandit (SAST)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install Bandit
+        run: pip install bandit
+
+      - name: Run Bandit
+        # -r: recursive, -ll: medium severity or higher, -x: exclude directories
+        run: bandit -r . -ll -x ./venv,./web/tests,./staticfiles
+
+  dependency-check:
+    name: Dependency Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: |
+          pip install pip-audit safety
+
+      - name: Run pip-audit
+        run: pip-audit -r requirements.txt
+
+      - name: Run Safety
+        run: safety check -r requirements.txt --full-report || echo "Safety found some issues or failed (likely due to missing API key for latest DB)"
