@@ -75,7 +75,7 @@ class TestCategories(TestCase):
         self.assertTemplateUsed(response, 'concepts.html')
         
         # Check that we have the database-specific titles/data
-        self.assertContains(response, 'Comparing MySQL (8) and PostgreSQL (15)')
+        self.assertContains(response, 'Comparing MySQL (version 8) and PostgreSQL (version 15)')
         self.assertContains(response, 'Queries')
 
     def test_invalid_structure_for_category_returns_error(self):

@@ -387,8 +387,7 @@ def concepts(request):
     try:
         meta_structure = meta_info.structure(structure_key)
     except KeyError:
-        return render_errors(request, ["The structure/concept isn't valid. \
-                Double-check your URL and try again."])
+        return render_errors(request, ["The structure/concept isn't valid. Double-check your URL and try again."])
 
     try:
         entries = meta_info.load_entries(entry_strings, meta_structure)
@@ -417,8 +416,7 @@ def concepts(request):
         ))
     except MissingEntryError as missing_entry:
         store_missing_info(visit, 'language', missing_entry.key)
-        errors.append(f"The entry \"{missing_entry.key}\" isn't valid. \
-                        Double-check your URL and try again.")
+        errors.append(f"The entry \"{missing_entry.key}\" isn't valid. Double-check your URL and try again.")
 
     if errors:
         return render_errors(request, errors)

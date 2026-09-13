@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 
-from web.thesaurus_template_generators import generate_language_template
+from web.thesaurus_template_generators import generate_entry_template
 from web.models import ThesaurusMetaInfo
 from packaging.version import parse as parse_version
 
@@ -28,7 +28,7 @@ class Command(BaseCommand):
 
     def generate_file(self, language, structure, language_version):
         try:
-            template = generate_language_template(
+            template = generate_entry_template(
                 language,
                 structure,
                 language_version

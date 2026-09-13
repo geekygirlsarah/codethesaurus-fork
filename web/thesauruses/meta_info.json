@@ -30,7 +30,6 @@
     "swift": "Swift",
     "typescript": "TypeScript",
     "vbnet": "Visual Basic",
-    "sqlserver": "Microsoft SQL Server",
     "mongodb": "MongoDB",
     "mysql": "MySQL",
     "postgresql": "PostgreSQL"
