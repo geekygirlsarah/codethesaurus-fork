@@ -18,12 +18,12 @@ Code Thesaurus is a polyglot developer reference tool. It compares a programming
 Most of the site is driven by JSON data files — the Django app mostly reads them and renders comparison/reference pages; the relational database only stores visit/lookup analytics.
 
 ### Key Technologies
-- Python 3.11 (per `runtime.txt` and CI; project requires pinned `requirements.txt`)
-- Django 4.2 (project package `codethesaurus/`, single app `web/`)
+- Python 3.14 (per `runtime.txt` and CI; project requires pinned `requirements.txt`)
+- Django 6.1 (project package `codethesaurus/`, single app `web/`)
 - Bootstrap 5 (CDN) + Font Awesome (CDN) for the frontend
 - Pygments (syntax highlighting), django-markdownify (Markdown rendering)
 - jsonmerge / jsonschema (thesaurus data handling and validation)
-- SQLite for local dev, PostgreSQL in production (Heroku via `django-on-heroku`)
+- SQLite for local dev, PostgreSQL in production (via `dj-database-url`)
 - Gunicorn (production), WhiteNoise (static files)
 
 ## Repository Structure
