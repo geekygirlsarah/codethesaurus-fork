@@ -82,6 +82,27 @@ class TestMetaStructures(TestCase):
                 entry = ThesaurusEntry(bad_key, "")
                 self.assertIsNone(entry.language_dir)
 
+    def test_metastructure_rejects_path_traversal_key(self):
+        """test that a malicious structure key never opens a file"""
+        from unittest.mock import mock_open, patch
+
+        with patch("builtins.open", mock_open()) as mocked_open:
+            with self.assertRaises(FileNotFoundError):
+                MetaStructure("../..", "")
+        mocked_open.assert_not_called()
+
+    def test_load_concepts_rejects_path_traversal_components(self):
+        """test that a malicious structure/version never opens a file"""
+        from unittest.mock import mock_open, patch
+
+        entry = ThesaurusEntry("python", "")
+        with patch("builtins.open", mock_open()) as mocked_open:
+            with self.assertRaises(FileNotFoundError):
+                entry.load_concepts("..", "3")
+            with self.assertRaises(FileNotFoundError):
+                entry.load_concepts("data_types", "../..")
+        mocked_open.assert_not_called()
+
 
     # Commented out as the function *technically* works, but it can't
     # ensure that the sample concept and language actually exist. So

@@ -31,6 +31,9 @@ class MetaStructure:
         self.key = key
         self.name = name
 
+        if not _is_safe_path_component(key):
+            raise FileNotFoundError(f"Structure key is not a safe path component: {key!r}")
+
         if key in MetaStructure._cached_files:
             self.categories = MetaStructure._cached_files[key]
             return
@@ -117,6 +120,9 @@ class ThesaurusEntry:
         :param structure_key: the key for the structure to load
         :param version: the version of the language
         """
+        if not (_is_safe_path_component(structure_key) and _is_safe_path_component(version)):
+            raise FileNotFoundError(
+                f"Unsafe structure/version path components: {structure_key!r} / {version!r}")
         file_path = os.path.join(self.language_dir, version, f"{structure_key}.json")
         with open(file_path, 'r', encoding='UTF-8') as file:
             file_json = json.load(file)
