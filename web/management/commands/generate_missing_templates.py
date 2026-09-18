@@ -1,3 +1,4 @@
+from django.core.management import call_command
 from django.core.management.base import BaseCommand
 
 from web.models import ThesaurusEntry, ThesaurusMetaInfo
@@ -25,4 +26,9 @@ class Command(BaseCommand):
                         structure + '.json'
                     )
                     if not os.path.exists(file_path):
-                        os.system(f'python manage.py generate_template "{language}" "{structure}" --language-version="{version}"')
+                        call_command(
+                            'generate_template',
+                            language,
+                            structure,
+                            language_version=version,
+                        )
