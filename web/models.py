@@ -7,7 +7,9 @@ from django.db import models
 
 
 def _is_safe_path_component(value):
-    return bool(value) and value not in (os.curdir, os.pardir) and os.path.basename(value) == value
+    return bool(value) and value not in (
+        os.curdir, os.pardir
+    ) and "/" not in value and "\\" not in value
 
 
 # pylint: disable=too-few-public-methods
