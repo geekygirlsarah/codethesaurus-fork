@@ -75,6 +75,13 @@ class TestMetaStructures(TestCase):
         self.assertRaises(FileNotFoundError,
                           language.load_concepts,  "notastructure", "notaversion")
 
+    def test_malicious_language_key_cannot_escape_thesaurus_dir(self):
+        """test that a user-controlled key cannot traverse out of the thesaurus dir"""
+        for bad_key in ("..", "../..", "..\\..", "python/.."):
+            with self.subTest(key=bad_key):
+                entry = ThesaurusEntry(bad_key, "")
+                self.assertIsNone(entry.language_dir)
+
 
     # Commented out as the function *technically* works, but it can't
     # ensure that the sample concept and language actually exist. So

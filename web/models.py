@@ -6,6 +6,10 @@ from jsonmerge import merge
 from django.db import models
 
 
+def _is_safe_path_component(value):
+    return bool(value) and value not in (os.curdir, os.pardir) and os.path.basename(value) == value
+
+
 # pylint: disable=too-few-public-methods
 class MetaStructure:
     """
@@ -59,6 +63,9 @@ class ThesaurusEntry:
         self.concepts = None
         self.version = None
         self.language_dir = None
+        if not _is_safe_path_component(self.key):
+            return
+
         for category in os.listdir(os.path.join("web", "thesauruses")):
             if category == "_meta" or not os.path.isdir(os.path.join("web", "thesauruses", category)):
                 continue
@@ -77,6 +84,8 @@ class ThesaurusEntry:
     def versions(self):
         """Generate all versions and their paths for the ThesaurusEntry"""
         versions = dict()
+        if self.language_dir is None:
+            return versions
         try:
             for entry in os.scandir(self.language_dir):
                 if not entry.is_dir():
@@ -97,7 +106,7 @@ class ThesaurusEntry:
 
         :rtype: bool
         """
-        return os.path.exists(self.language_dir)
+        return self.language_dir is not None and os.path.exists(self.language_dir)
 
     def load_concepts(self, structure_key, version):
         """
