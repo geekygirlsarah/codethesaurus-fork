@@ -1,5 +1,6 @@
 """test for the models"""
 import json
+import os
 
 from django.test import TestCase
 
@@ -81,6 +82,14 @@ class TestMetaStructures(TestCase):
             with self.subTest(key=bad_key):
                 entry = ThesaurusEntry(bad_key, "")
                 self.assertIsNone(entry.language_dir)
+
+    def test_language_dir_stays_within_thesaurus_root(self):
+        """test that language_dir is confined to the thesaurus directory"""
+        entry = ThesaurusEntry("python", "")
+        thesaurus_root = os.path.realpath(
+            os.path.join("web", "thesauruses"))
+        self.assertIsNotNone(entry.language_dir)
+        self.assertTrue(entry.language_dir.startswith(thesaurus_root + os.sep))
 
     def test_metastructure_rejects_path_traversal_key(self):
         """test that a malicious structure key never opens a file"""

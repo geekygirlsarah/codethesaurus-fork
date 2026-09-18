@@ -38,8 +38,12 @@ class MetaStructure:
             self.categories = MetaStructure._cached_files[key]
             return
 
-        meta_structure_file_path = os.path.join(
-            "web", "thesauruses", "_meta", f"{key}.json")
+        thesaurus_root = os.path.join("web", "thesauruses")
+        root_real = os.path.realpath(thesaurus_root)
+        meta_structure_file_path = os.path.realpath(
+            os.path.join(thesaurus_root, "_meta", f"{key}.json"))
+        if not meta_structure_file_path.startswith(root_real + os.sep):
+            raise FileNotFoundError(f"Structure key escapes the thesaurus dir: {key!r}")
         with open(meta_structure_file_path, 'r', encoding='UTF-8') as meta_structure_file:
             meta_structure_file_json = json.load(meta_structure_file)
 
@@ -71,18 +75,22 @@ class ThesaurusEntry:
         if not _is_safe_path_component(self.key):
             return
 
-        for category in os.listdir(os.path.join("web", "thesauruses")):
-            if category == "_meta" or not os.path.isdir(os.path.join("web", "thesauruses", category)):
+        thesaurus_root = os.path.join("web", "thesauruses")
+        root_real = os.path.realpath(thesaurus_root)
+        for category in os.listdir(thesaurus_root):
+            if category == "_meta" or not os.path.isdir(os.path.join(thesaurus_root, category)):
                 continue
-            potential_dir = os.path.join("web", "thesauruses", category, self.key)
-            if os.path.exists(potential_dir):
+            potential_dir = os.path.realpath(
+                os.path.join(thesaurus_root, category, self.key))
+            if potential_dir.startswith(root_real + os.sep) and os.path.isdir(potential_dir):
                 self.language_dir = potential_dir
                 break
         
         if self.language_dir is None:
-            # Fallback for when it doesn't exist yet (e.g. during template generation)
-            # Defaulting to 'langs' if not found, but this might need refinement
-            self.language_dir = os.path.join("web", "thesauruses", "langs", self.key)
+            fallback_dir = os.path.realpath(
+                os.path.join(thesaurus_root, "langs", self.key))
+            if fallback_dir.startswith(root_real + os.sep):
+                self.language_dir = fallback_dir
         self.version = None
 
 
@@ -123,7 +131,12 @@ class ThesaurusEntry:
         if not (_is_safe_path_component(structure_key) and _is_safe_path_component(version)):
             raise FileNotFoundError(
                 f"Unsafe structure/version path components: {structure_key!r} / {version!r}")
-        file_path = os.path.join(self.language_dir, version, f"{structure_key}.json")
+        root_real = os.path.realpath(os.path.join("web", "thesauruses"))
+        file_path = os.path.realpath(os.path.join(
+            self.language_dir, version, f"{structure_key}.json"))
+        if not file_path.startswith(root_real + os.sep):
+            raise FileNotFoundError(
+                f"Structure/version escape the thesaurus dir: {structure_key!r} / {version!r}")
         with open(file_path, 'r', encoding='UTF-8') as file:
             file_json = json.load(file)
             self.concepts = file_json["concepts"]
